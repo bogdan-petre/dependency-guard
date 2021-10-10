@@ -12,20 +12,14 @@ namespace DependencyGuard
         /// Validates dependency injection container at startup.
         /// </summary>
         /// <param name="serviceCollection"></param>
-        public static void ValidateAtStartup(this IServiceCollection serviceCollection)
+        public static void ValidateAtStartup(this IServiceCollection serviceCollection, Assembly assembly)
         {
-            foreach (ServiceDescriptor descriptor in serviceCollection)
+            List<ParameterInfo> dependencies = DependencyExtractor.ExtractConstructorParameters(assembly);
+            foreach (var dependency in dependencies)
             {
-                if (descriptor.ImplementationType != null)
-                {
-                    List<ParameterInfo> dependencies = DependencyExtractor.ExtractConstructorParameters(descriptor.ImplementationType);
-                    foreach (var dependency in dependencies)
-                    {
-                        bool isRegistered = serviceCollection.Any(s => s.ImplementationType.Equals(dependency.ParameterType));
-                        if (!isRegistered)
-                            throw new ServiceNotRegisteredException($"Type is not registered: {dependency.ParameterType}");
-                    }
-                }
+                bool isRegistered = serviceCollection.Any(s => dependency.ParameterType.IsAssignableFrom(s.ServiceType));
+                if (!isRegistered)
+                    throw new ServiceNotRegisteredException($"Service is not registered: {dependency.ParameterType}");
             }
         }
     }

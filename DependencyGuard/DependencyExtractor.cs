@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
@@ -12,14 +11,17 @@ namespace DependencyGuard
         /// </summary>
         /// <param name="type">Type to extract constructors arguments types.</param>
         /// <returns></returns>
-        public static List<ParameterInfo> ExtractConstructorParameters(Type type)
+        public static List<ParameterInfo> ExtractConstructorParameters(Assembly assembly)
         {
             List<ParameterInfo> parameters = new List<ParameterInfo>();
-            ConstructorInfo[] constructors = type.GetConstructors();
-            foreach (var constructor in constructors)
+            foreach(var type in assembly.GetTypes())
             {
-                parameters.AddRange(constructor.GetParameters().Where(c =>
-                    c.ParameterType.GetCustomAttributes(typeof(IgnoreGuardAttribute), true).Length == 0).ToList());
+                ConstructorInfo[] constructors = type.GetConstructors();                
+                foreach (var constructor in constructors)
+                {
+                    parameters.AddRange(constructor.GetParameters().Where(c =>
+                        c.ParameterType.GetCustomAttributes(typeof(IgnoreGuardAttribute), true).Length == 0).ToList());
+                }
             }
             return parameters;
         }
