@@ -3,12 +3,20 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
-    <Version>1.0.3</Version>
+    <Version>1.0.0</Version>
+    <Description>Service registration validation for ASP.NET Core 2.*</Description>
+    <Copyright>Copyright (c) 2021 Bogdan Petre</Copyright>
+    <PackageProjectUrl></PackageProjectUrl>
+    <RepositoryUrl>https://github.com/devfact/dependency-guard</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <Authors>Bogdan Petre</Authors>
+    <Company>Bogdan Petre</Company>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Autofac" Version="6.2.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="2.1.1" />
+    <PackageReference Include="System.Reflection.Emit" Version="4.7.0" />
   </ItemGroup>
 
 </Project>

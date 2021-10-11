@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
@@ -13,6 +14,7 @@ namespace DependencyGuard
         /// <returns></returns>
         public static List<ParameterInfo> ExtractConstructorParameters(Assembly assembly)
         {
+            if (assembly is null) throw new ArgumentException("No assembly specified", nameof(assembly));
             List<ParameterInfo> parameters = new List<ParameterInfo>();
             foreach(var type in assembly.GetTypes())
             {

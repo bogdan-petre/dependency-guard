@@ -21,7 +21,7 @@ namespace DependencyGuard.Tests.Unit
         public DynamicTypeBuilder CreateType(string assembly, string typeName)
         {
             ModuleBuilder moduleBuilder = CreateModuleBuilder(assembly);
-            _typeBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Public);            
+            _typeBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Public);
             return this;
         }
 
@@ -38,6 +38,20 @@ namespace DependencyGuard.Tests.Unit
             return this;
         }
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="attributeName"></param>
+        /// <param name="constructorParams"></param>
+        /// <returns></returns>
+        public DynamicTypeBuilder WithAttribute(Type attributeType, Type[] constructorParams)
+        {
+            ConstructorInfo constructorInfo = attributeType.GetConstructor(constructorParams);
+
+            CustomAttributeBuilder customAttributeBuilder = new CustomAttributeBuilder(constructorInfo, new object[] { });
+            _typeBuilder.SetCustomAttribute(customAttributeBuilder);
+            return this;
+        }
 
         private ModuleBuilder CreateModuleBuilder(string assembly)
         {
