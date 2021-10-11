@@ -1,4 +1,5 @@
 [![Build Status](https://dev.azure.com/FabricaDeDezvoltare/DependencyGuard/_apis/build/status/devfact.dependency-guard?branchName=master)](https://dev.azure.com/FabricaDeDezvoltare/DependencyGuard/_build/latest?definitionId=1&branchName=master)
+![Azure DevOps coverage](https://img.shields.io/azure-devops/coverage/FabricaDeDezvoltare/DependencyGuard/3)
 
 # What is it?
 Dependency Guard is a library to help you validate your ASP .NET Core 2.* DI container at startup.
