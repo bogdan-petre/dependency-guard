@@ -7,7 +7,7 @@ namespace DependencyGuard.Tests.Unit
     public class DynamicTypeBuilderTests
     {
         [Fact]
-        public void ShouldAddOneParameterConstructor()
+        public void Adds_one_parameter_to_constructor()
         {
             var builder = new DynamicTypeBuilder();
 
@@ -27,7 +27,7 @@ namespace DependencyGuard.Tests.Unit
         }
 
         [Fact]
-        public void ShouldAddAttribute()
+        public void Adds_attribute_to_type()
         {
             var builder = new DynamicTypeBuilder();
             Type dynamicType = builder

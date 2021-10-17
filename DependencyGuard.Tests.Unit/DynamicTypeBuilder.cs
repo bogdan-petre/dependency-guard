@@ -12,34 +12,36 @@ namespace DependencyGuard.Tests.Unit
         private TypeBuilder _typeBuilder;
         public AssemblyBuilder Assembly { get; private set; }
 
+        private ModuleBuilder _moduleBuilder;
+
         /// <summary>
         /// Will create the defined type with Public accessor by default.
         /// </summary>
-        /// <param name="assembly">The name of the assembly</param>
+        /// <param name="nameOfAssembly">The name of the assembly</param>
         /// <param name="typeName">The name of the type</param>
         /// <returns></returns>
-        public DynamicTypeBuilder CreateType(string assembly, string typeName)
+        public DynamicTypeBuilder CreateType(string nameOfAssembly, string typeName)
         {
-            ModuleBuilder moduleBuilder = CreateModuleBuilder(assembly);
-            _typeBuilder = moduleBuilder.DefineType(typeName, TypeAttributes.Public);
+            if (_moduleBuilder is null) CreateModuleBuilderInstance(nameOfAssembly);
+            _typeBuilder = _moduleBuilder.DefineType(typeName, TypeAttributes.Public);
             return this;
         }
 
         /// <summary>
         /// Will create the defined type.
         /// </summary>
-        /// <param name="assembly">The name of the assembly</param>
+        /// <param name="nameOfAssembly">The name of the assembly</param>
         /// <param name="typeName">The name of the type</param>
         /// <returns></returns>
-        public DynamicTypeBuilder CreateType(string assembly, string typeName, TypeAttributes typeAttributes)
+        public DynamicTypeBuilder CreateType(string nameOfAssembly, string typeName, TypeAttributes typeAttributes)
         {
-            ModuleBuilder moduleBuilder = CreateModuleBuilder(assembly);
-            _typeBuilder = moduleBuilder.DefineType(typeName, typeAttributes);
+            if (_moduleBuilder is null) CreateModuleBuilderInstance(nameOfAssembly);
+            _typeBuilder = _moduleBuilder.DefineType(typeName, typeAttributes);
             return this;
         }
 
         /// <summary>
-        /// 
+        /// Adds an attribute to the currently created type.
         /// </summary>
         /// <param name="attributeName"></param>
         /// <param name="constructorParams"></param>
@@ -53,12 +55,17 @@ namespace DependencyGuard.Tests.Unit
             return this;
         }
 
-        private ModuleBuilder CreateModuleBuilder(string assembly)
+        public DynamicTypeBuilder CreateAssembly(string assemblyName)
         {
-            AssemblyName assemblyName = new AssemblyName(assembly);
+            CreateModuleBuilderInstance(assemblyName);
+            return this;
+        }
+
+        private void CreateModuleBuilderInstance(string nameOfAssembly)
+        {
+            AssemblyName assemblyName = new AssemblyName(nameOfAssembly);
             Assembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.RunAndCollect);
-            ModuleBuilder moduleBuilder = Assembly.DefineDynamicModule($"{Assembly.GetName().Name}.dll");
-            return moduleBuilder;
+            _moduleBuilder = Assembly.DefineDynamicModule($"{Assembly.GetName().Name}.dll");
         }
 
         /// <summary>

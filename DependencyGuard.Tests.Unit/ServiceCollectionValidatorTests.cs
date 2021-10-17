@@ -1,5 +1,7 @@
 ﻿using DependencyGuard.Exceptions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Moq;
 using System;
 using System.Reflection;
 using Xunit;
@@ -9,7 +11,7 @@ namespace DependencyGuard.Tests.Unit
     public class ServiceCollectionValidatorTests
     {
         [Fact]
-        public void ValidateAtStartup_AllServicesRegisteredAsInterfaces_NoExceptionThrown()
+        public void No_exception_thrown_when_all_types_are_registered_as_concrete_abstractions()
         {
             ServiceCollection collection = new ServiceCollection();
             var builder = new DynamicTypeBuilder();
@@ -24,11 +26,11 @@ namespace DependencyGuard.Tests.Unit
             collection.AddScoped(interface1, class1);
             collection.AddScoped(interface2, class2);
 
-            collection.ValidateAtStartup(builder.Assembly);
+            collection.ValidateAtStartup(builder.Assembly, cfg => cfg.WithException = true);
         }
 
         [Fact]
-        public void ValidateAtStartup_AllServicesRegisteredAsImplementations_NoExceptionThrown()
+        public void No_exception_thrown_when_all_types_are_registered_as_concrete_classes()
         {
             ServiceCollection collection = new ServiceCollection();
             var builder = new DynamicTypeBuilder();
@@ -41,20 +43,11 @@ namespace DependencyGuard.Tests.Unit
             collection.AddScoped(class2, class2);
             collection.AddScoped(class3, class3);
 
-            collection.ValidateAtStartup(builder.Assembly);
+            collection.ValidateAtStartup(builder.Assembly, cfg => cfg.WithException = true);
         }
 
-        //TODO: fix test when DynamicTypeBuilder is capable of creating multiple constructor classes.
-        //[Fact]
-        //public void ValidateAtStartup_ClassWithMultipleConstructors_NoExceptionThrown()
-        //{
-        //    ServiceCollection collection = new ServiceCollection();
-
-        //    collection.ValidateAtStartup(Assembly.GetExecutingAssembly());
-        //}
-
         [Fact]
-        public void ValidateAtStartup_UnregisteredService_ExceptionThrown()
+        public void Throws_exception_when_service_is_not_registered()
         {
             ServiceCollection collection = new ServiceCollection();
             var builder = new DynamicTypeBuilder();
@@ -64,11 +57,11 @@ namespace DependencyGuard.Tests.Unit
 
             collection.AddScoped(class2, class2);
 
-            Assert.Throws<ServiceNotRegisteredException>(() => collection.ValidateAtStartup(builder.Assembly));
+            Assert.Throws<ServiceNotRegisteredException>(() => collection.ValidateAtStartup(builder.Assembly, cfg => cfg.WithException = true));
         }
 
         [Fact]
-        public void ValidateAtStartup_AnnotatedUnregisteredService_NoExceptionThrown()
+        public void No_exception_thrown_when_type_is_not_registered_but_is_annotated()
         {
             ServiceCollection collection = new ServiceCollection();
             var builder = new DynamicTypeBuilder();
@@ -78,14 +71,142 @@ namespace DependencyGuard.Tests.Unit
 
             collection.AddScoped(class2, class2);
 
-            collection.ValidateAtStartup(builder.Assembly);
+            collection.ValidateAtStartup(builder.Assembly, cfg => cfg.WithException = true);
+        }        
+
+        [Fact]
+        public void No_exception_thrown_when_dependency_is_in_another_assembly()
+        {
+            ServiceCollection collection = new ServiceCollection();
+            var builder = new DynamicTypeBuilder();
+
+            Type class1 = builder.CreateType("Assembly1", "Class1").Build();
+            Type class2 = builder.CreateType("Assembly2", "Class2").WithConstructorParameters(class1).Build();
+
+            collection.AddScoped(class1, class1);
+            collection.AddScoped(class2, class2);
+
+            collection.ValidateAtStartup(builder.Assembly, cfg => cfg.WithException = true);
         }
 
         [Fact]
-        public void ValidateAtStartup_AssemblyIsNull_ThrowsArgumentException()
+        public void Invokes_action_when_service_not_defined()
         {
             ServiceCollection collection = new ServiceCollection();
-            Assert.Throws<ArgumentException>(() => collection.ValidateAtStartup(null));
+            var builder = new DynamicTypeBuilder();
+            Type class1 = builder.CreateType("Assembly1", "Class1").Build();
+            Type class2 = builder.CreateType("Assembly2", "Class2").WithConstructorParameters(class1).Build();
+            collection.AddScoped(class2, class2);
+
+            var actionMock = new Mock<Action>();
+
+            collection.ValidateAtStartup(builder.Assembly, actionMock.Object);
+            actionMock.Verify(a => a.Invoke(), Times.Once);
         }
+
+        [Fact]
+        public void Action_not_invoked_when_service_is_valid()
+        {
+            ServiceCollection collection = new ServiceCollection();
+            var builder = new DynamicTypeBuilder();
+            Type class1 = builder.CreateType("Assembly1", "Class1").Build();
+            Type class2 = builder.CreateType("Assembly2", "Class2").WithConstructorParameters(class1).Build();
+            collection.AddScoped(class1, class1);
+            collection.AddScoped(class2, class2);
+
+            var actionMock = new Mock<Action>();
+
+            collection.ValidateAtStartup(builder.Assembly, actionMock.Object);
+            actionMock.Verify(a => a.Invoke(), Times.Never);
+        }
+
+        [Fact]
+        public void Not_registered_services_are_returned_in_the_callback()
+        {
+            ServiceCollection collection = new ServiceCollection();
+            var builder = new DynamicTypeBuilder();
+            Type class1 = builder.CreateType("Assembly1", "Class1").Build();
+            Type class2 = builder.CreateType("Assembly2", "Class2").WithConstructorParameters(class1).Build();
+            collection.AddScoped(class2, class2);
+
+            collection.ValidateAtStartup(builder.Assembly, (types) =>
+            {
+                Assert.NotEmpty(types);
+            });
+        }
+
+        [Fact]
+        public void No_services_are_returned_in_the_callback()
+        {
+            ServiceCollection collection = new ServiceCollection();
+            var builder = new DynamicTypeBuilder();
+            Type class1 = builder.CreateType("Assembly1", "Class1").Build();
+            Type class2 = builder.CreateType("Assembly2", "Class2").WithConstructorParameters(class1).Build();
+            collection.AddScoped(class1, class1);
+            collection.AddScoped(class2, class2);
+
+            collection.ValidateAtStartup(builder.Assembly, (types) =>
+            {
+                Assert.Empty(types);
+            });
+        }
+
+        [Fact]
+        public void All_services_not_registered_are_logged()
+        {
+            ServiceCollection collection = new ServiceCollection();
+            var builder = new DynamicTypeBuilder();
+            Type class1 = builder.CreateType("Assembly1", "Class1").Build();
+            Type class2 = builder.CreateType("Assembly2", "Class2").WithConstructorParameters(class1).Build();
+            collection.AddScoped(class2, class2);
+
+            var loggerMock = new Mock<ILogger>();
+
+            collection.ValidateAtStartup(builder.Assembly, loggerMock.Object);
+
+            loggerMock.Verify(l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()),
+                    Times.Once);
+        }
+
+        [Fact]
+        public void No_exception_thrown_when_setting_is_not_true()
+        {
+            ServiceCollection collection = new ServiceCollection();
+            var builder = new DynamicTypeBuilder();
+            Type class1 = builder.CreateType("Assembly1", "Class1").Build();
+            Type class2 = builder.CreateType("Assembly2", "Class2").WithConstructorParameters(class1).Build();
+            collection.AddScoped(class2, class2);
+
+            Assert.Throws<ServiceNotRegisteredException>(() => collection.ValidateAtStartup(builder.Assembly, cfg => cfg.WithException = true));
+        }
+
+        [Fact]
+        public void Logs_once_for_every_service_not_registered()
+        {
+            ServiceCollection collection = new ServiceCollection();
+            var builder = new DynamicTypeBuilder();
+            Type class1 = builder.CreateType("Assembly1", "Class1").Build();
+            Type class2 = builder.CreateType("Assembly2", "Class2").WithConstructorParameters(class1).Build();
+            Type class3 = builder.CreateType("Assembly1", "Class3").WithConstructorParameters(class1).Build();
+            collection.AddScoped(class2, class2);
+
+            var loggerMock = new Mock<ILogger>();
+
+            collection.ValidateAtStartup(builder.Assembly, loggerMock.Object);
+
+            loggerMock.Verify(l => l.Log(
+                LogLevel.Warning,
+                It.IsAny<EventId>(),
+                It.IsAny<It.IsAnyType>(),
+                It.IsAny<Exception>(),
+                (Func<It.IsAnyType, Exception, string>)It.IsAny<object>()),
+                    Times.Once);
+        }
+        
     }
 }
